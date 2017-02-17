@@ -58,8 +58,8 @@ void loop() {
 
 
 void sendCommand(int temperature, bool on) {
-    // Fixed start bytes                                      Temp/On   Fan/Mode   Unused    Checksum
-    byte signal[DATALEN] = {0xF2, 0x0D, 0x03, 0xFC, 0x01,     0x70,     0x07,      0x00,     0x00};
+    // Fixed start bytes                                      Temp      Fan/Mode/Power   Unused    Checksum
+    byte signal[DATALEN] = {0xF2, 0x0D, 0x03, 0xFC, 0x01,     0x70,     0x07,            0x00,     0x00};
 
     // Calculate byte for on/off and temperature
     signal[5] = getTemperature(temperature);
