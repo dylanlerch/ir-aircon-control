@@ -4,9 +4,9 @@ This is a project that I'm working on to let me control my A/C using [Homebridge
 Thanks to Mattia Rossi for decoding the [Toshiba A/C signals](http://blog.mrossi.com/2016/05/toshiba-air-conditioner-ir-signal.html) so that I didn't have to.
 
 ## Device Setup
-- I've got Homebridge running on a Raspberry Pi, that allows me to access devices on the network using Apple's HomeKit.
+- I've got Homebridge running on a [Raspberry Pi](https://www.raspberrypi.org/products/raspberry-pi-3-model-b/), that allows me to access devices on the network using Apple's HomeKit.
 - I've got a basic web server running on the Pi that receives on/off and temperature setting commands from any device on the network - and sends them to the Arduino via a serial connection.
-- I've got an Arduino firing the IR signals off to the A/C to control it.
+- I've got an [Arduino](https://www.arduino.cc/en/Main/ArduinoBoardUno) firing the IR signals off to the A/C to control it.
 
 
 ## Files
