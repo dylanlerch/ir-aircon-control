@@ -16,5 +16,5 @@ This runs on the Arduino that sends the IR signals to the A/C unit.
 ### irServer.py
 This runs on the Raspberry Pi and receives commands (via web requests) to change the state of the A/C. This facilitates the serial communication between the Pi and the Arduino.
 
-### homebridge-ac-over-http.js
+### index.js
 This is the Homebride plugin that allows homebridge to talk to send commands and retrieve status from the irServer.
