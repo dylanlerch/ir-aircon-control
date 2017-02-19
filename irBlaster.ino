@@ -14,6 +14,8 @@
 
 #define DATALEN 9
 
+#define SIGNAL_SEND_REPEATS 3
+
 
 IRsend ir;
 
@@ -39,11 +41,12 @@ void loop() {
 
         if (b == 0xFF) { // Status query
             Serial.write(getTemperature(current_temperature) | getOn(current_power_state));
-        } else { // Received new instruction
-            repeats_remaining = 5; // Repeat this 5 times
-
-            current_temperature = (int)((0xF0 & b) >> 4) + 17;
-            current_power_state = !((bool)(0x0F & b));
+        } else if ((0x10 & b)) { // If bit 5 is high, it's an on or off command
+            repeats_remaining = SIGNAL_SEND_REPEATS; // Reset the repeat count
+            current_power_state = ((bool)(0x0F & b));
+        } else { // received a temperature instruction
+            repeats_remaining = SIGNAL_SEND_REPEATS; // Reset the repeat count
+            current_temperature = (int)((0x0F & b)) + 17;
         }
     }
 
