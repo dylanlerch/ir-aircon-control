@@ -1,5 +1,6 @@
 #include <IRremote.h>
 #include <IRremoteInt.h>
+#include <math.h>
 
 #define TOSHIBA_SPEED 38
 #define TOSHIBA_REPEATS 2
@@ -16,11 +17,14 @@
 
 #define SIGNAL_SEND_REPEATS 3
 
+#define AMBIENT_TEMP_PIN 0
+
 
 IRsend ir;
 
 int repeats_remaining;
 int current_temperature;
+float current_ambient_temperature;
 bool current_power_state;
 
 void setup() {
@@ -31,6 +35,8 @@ void setup() {
     current_temperature = 24;
     current_power_state = false;
 
+    current_ambient_temperature = 0;
+
     pinMode(13, OUTPUT);
 }
 
@@ -39,8 +45,12 @@ void loop() {
     if (Serial.available() > 0) {
         byte b = Serial.read();
 
-        if (b == 0xFF) { // Status query
-            Serial.write(getTemperature(current_temperature) | getOn(current_power_state));
+        if (b == 0xFF) { // AC status query
+            byte message= getTemperature(current_temperature) | getOn(current_power_state);
+            Serial.write(message);
+        } else if (b = 0xF0) { // Ambient temp query
+            byte message = getAmbientTemperature();
+            Serial.write(message);
         } else if ((0x10 & b)) { // If bit 5 is high, it's an on or off command
             repeats_remaining = SIGNAL_SEND_REPEATS; // Reset the repeat count
             current_power_state = ((bool)(0x0F & b));
@@ -72,6 +82,41 @@ void sendCommand(int temperature, bool on) {
     signal[DATALEN - 1] = calculateCheckSum(signal, sizeof(signal) - 1);
 
     sendSignal(TOSHIBA_SPEED, TOSHIBA_REPEATS, signal, sizeof(signal));
+}
+
+byte getAmbientTemperature() {
+    // From the temperature sensor data sheet
+    float voltage = (analogRead(AMBIENT_TEMP_PIN) * 0.004882814);
+    float degrees = (voltage - 0.5) * 100.0;
+    
+    // Get the whole number for the degrees, this will be stored in the top 6
+    // bits of the byte that is returned.
+    int wholeDegrees = floor(degrees);
+
+    // We only have 4 bits left for the decimal, so we will map the decimals to
+    // one of 4 values, 0->0, 1->0.25, 2->0.5, 3->0.75
+    int decimal = round((wholeDegrees * 4) - (degrees * 4));
+
+    // If the decimal is greater than 3, then the decimal is so high that we 
+    // should just round the temerature up to the next degree, and set decimal
+    // to 0.
+    if (decimal > 3) wholeDegrees += 1;
+
+    // Offset by 10 so we can support between -10 - 53 degrees rather than 
+    // 0 - 63.
+    wholeDegrees += 10;
+
+    // If we're exceeing limits, just set it back to the thresholds
+    if (wholeDegrees < 0) {
+        wholeDegrees = 0;
+        decimal = 0;
+    } else if (wholeDegrees > 63) {
+        wholeDegrees = 63;
+        decimal = 0;
+    }
+
+    // Top six bits store the whole value, bottom two bits store the decimal
+    return (wholeDegrees << 2) | (decimal & 0b00000011);
 }
 
 byte getOn(bool on) {
