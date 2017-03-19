@@ -15,19 +15,39 @@ class handler(BaseHTTPRequestHandler):
         # knows about. If changed have been made with the remote, the arduino
         # won't know about these.
         if self.path == "/status":
-            serialport.write(b'\xFF') # Ask the arduino for the current status
-            response = serialport.read() # Read the status response
+            # AC STATUS
+            serialport.write(b'\xFF') # Ask the arduino for the current AC status
 
-            # Single byte response - first 4 bits are the temperature (from 0 -
+            # first 4 bits are the temperature (from 0 -
             # 13, representing temperatures from 17 to 30), second 4 bits are on
-            # and off (0 is on, 7 is off). 
-            temp = ((bytearray(response)[0]) >> 4) + 17
-            power = not bool((bytearray(response)[0]) & 7)
+            # and off (0 is on, 7 is off).
+            response = bytearray(serialport.read()) # Read the status response
+	    temp = (response[0] >> 4) + 17
+            power = not bool(response[0]) & 7
+
+            serialport.flushInput() # Clear any left over bytes
+
+
+            # AMBIENT TEMP
+            serialport.write(b'\xF0') # Ask the arduino for the ambient temp
+
+            # Second Byte - Ambient Temp
+            response = bytearray(serialport.read()) 
+            ambientTempWhole = (response[0] & int('11111100', 2)) >> 2
+            ambientTempDecimal = response[0] & int('00000011', 2)
+
+            print "{0:b}".format(response[0])
+            print ambientTempWhole
+            print ambientTempDecimal
+
+            ambientTemp = (ambientTempWhole - 10.0) + (0.25 * ambientTempDecimal)
+
+            serialport.flushInput() # Clear any left over bytes	    
 
             # Convert to JSON to be sent back to the requester - this can be
             # extended in the future if there is more information that can be
             # returned.
-            js = json.dumps({'temp': temp, 'on': power})
+            js = json.dumps({'temp': temp, 'on': power, 'ambientTemp':ambientTemp})
             
             self.send_response(200)
             self.send_header('Content-type','text/json')
